@@ -32,42 +32,35 @@ def main():
     agent_address = (ip, port)
     success_recv_count = 0
     success_send_count = 0
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    except socket.error as e:
+            print('Error creating socket:', e)
+            exit(0)
 
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.settimeout(timeout)
-    for i in range(count):
-        id = i
+    for id in range(count):
+        
         start_time = time.time()
         data = FIXED_MESSAGE.zfill(size).encode()
-        message_to_send = struct.pack('>bi', OPCODE, i) + data
-        # sock.sendto(struct.pack('>b', OPCODE), agent_address)
-        # sock.sendto(struct.pack('>i', id), agent_address)
-        sock.sendto(message_to_send, agent_address)
-        success_send_count += 1
-        # sock.sendto(struct.pack('>b', size), agent_address)
-        # sock.sendto(msg_to_send, agent_address)
+        message_to_send = struct.pack('>bi', OPCODE, id) + data
         try:
-            # opcode, addr = sock.recvfrom(1)
-            # opcode_unpacked = struct.unpack('>b', opcode)[0]
-            # # print("opcode is {}".format(opcode_unpacked))
-            # id, addr = sock.recvfrom(4)
-            # id_unpacked = struct.unpack('>i', id)[0]
-            # # print("id is {}".format(id_unpacked))
-            # data_length, addr = sock.recvfrom(1)
-            # data_length_unpacked = struct.unpack('>b', data_length)[0]
-            # # print("data_length is {}".format(data_length_unpacked))
-            # data, addr = sock.recvfrom(data_length_unpacked)
-            # # print("data is {}".format(data.decode()))
+            sock.sendto(message_to_send, agent_address)
+        except socket.error as e:
+            print('Error sending message to socket')
+            exit(0)
+        success_send_count += 1
+        try:
             received_data, addr = sock.recvfrom(MAX_PACKET_SIZE)
             opcode_unpacked, id_bytes_unpacked = struct.unpack('>bi', received_data[:HEADER_LENGTH])
             data = received_data[HEADER_LENGTH:]
             end_time = time.time()
             rtt = end_time - start_time
             total_bytes_len = len(received_data)
-            print("{} bytes from {}: seq={} rtt={}".format(total_bytes_len, ip, i, rtt))
+            print("{} bytes from {}: seq={} rtt={}".format(total_bytes_len, ip, id, rtt))
             success_recv_count += 1
         except socket.timeout:
-            print('requst timeout for icmp_seq {}'.format(i))
+            print('requst timeout for icmp_seq {}'.format(id))
             # Discard any remaining data in the buffer
             sock.settimeout(0)  # Set timeout to non-blocking
             while True:
