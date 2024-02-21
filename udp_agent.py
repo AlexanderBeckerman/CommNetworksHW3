@@ -39,7 +39,7 @@ def main():
         message_to_send = struct.pack('>bi', OPCODE, id_bytes_unpacked)
         sock.sendto(message_to_send + data, addr)
         if id_bytes_unpacked == 1:
-            time.sleep(1.5)
+            time.sleep(0.5)
         # sock.sendto(struct.pack('>b', opcode_unpacked), addr)
         # sock.sendto(struct.pack('>i', id_bytes_unpacked), addr)
         # sock.sendto(struct.pack('>b', ), addr)

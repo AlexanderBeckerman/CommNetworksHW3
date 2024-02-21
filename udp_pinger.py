@@ -30,6 +30,8 @@ def main():
     timeout = args.timeout
 
     agent_address = (ip, port)
+    success_recv_count = 0
+    success_send_count = 0
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.settimeout(timeout)
@@ -41,6 +43,7 @@ def main():
         # sock.sendto(struct.pack('>b', OPCODE), agent_address)
         # sock.sendto(struct.pack('>i', id), agent_address)
         sock.sendto(message_to_send, agent_address)
+        success_send_count += 1
         # sock.sendto(struct.pack('>b', size), agent_address)
         # sock.sendto(msg_to_send, agent_address)
         try:
@@ -62,6 +65,7 @@ def main():
             rtt = end_time - start_time
             total_bytes_len = len(received_data)
             print("{} bytes from {}: seq={} rtt={}".format(total_bytes_len, ip, i, rtt))
+            success_recv_count += 1
         except socket.timeout:
             print('requst timeout for icmp_seq {}'.format(i))
             # Discard any remaining data in the buffer
@@ -70,7 +74,6 @@ def main():
                 try:
                     _ = sock.recv(MAX_PACKET_SIZE)
                 except socket.error as e:
-                    print('Socket error inside while:', e)
                     break
             sock.settimeout(timeout)  # Restore timeout to blocking
         except socket.error as e:
@@ -80,6 +83,8 @@ def main():
             print('An unexpected error occurred:', e)
             exit(0)
 
-
+    packet_loss = success_recv_count/success_send_count * 100
+    print("--- {} statistics ---".format(ip))
+    print("{} packets transmitted, {} packets received, {:.2f}% packet loss".format(success_send_count, success_recv_count, packet_loss))
 if __name__ == '__main__':
     main()
