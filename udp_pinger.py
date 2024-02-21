@@ -83,7 +83,7 @@ def main():
             print('An unexpected error occurred:', e)
             exit(0)
 
-    packet_loss = success_recv_count/success_send_count * 100
+    packet_loss = 100 - success_recv_count/success_send_count * 100
     print("--- {} statistics ---".format(ip))
     print("{} packets transmitted, {} packets received, {:.2f}% packet loss".format(success_send_count, success_recv_count, packet_loss))
 if __name__ == '__main__':
