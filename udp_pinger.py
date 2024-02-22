@@ -20,7 +20,7 @@ def main():
     parser.add_argument('-p', '--port', type=int, default=DEFAULT_PORT)
     parser.add_argument('-s', '--size', type=int, default=DEFAULT_SIZE)
     parser.add_argument('-c', '--count', type=int, default=DEFAULT_COUNT)
-    parser.add_argument('-t', '--timeout', type=int, default=DEFAULT_TIMEOUT)
+    parser.add_argument('-t', '--timeout', type=float, default=DEFAULT_TIMEOUT)
     args = parser.parse_args()
 
     ip = args.ip
@@ -50,31 +50,28 @@ def main():
             print('Error sending message to socket')
             exit(0)
         success_send_count += 1
-        try:
-            received_data, addr = sock.recvfrom(MAX_PACKET_SIZE)
-            opcode_unpacked, id_bytes_unpacked = struct.unpack('>bi', received_data[:HEADER_LENGTH])
-            data = received_data[HEADER_LENGTH:]
-            end_time = time.time()
-            rtt = end_time - start_time
-            total_bytes_len = len(received_data)
-            print("{} bytes from {}: seq={} rtt={}".format(total_bytes_len, ip, id, rtt))
-            success_recv_count += 1
-        except socket.timeout:
-            print('requst timeout for icmp_seq {}'.format(id))
-            # Discard any remaining data in the buffer
-            sock.settimeout(0)  # Set timeout to non-blocking
-            while True:
-                try:
-                    _ = sock.recv(MAX_PACKET_SIZE)
-                except socket.error as e:
-                    break
-            sock.settimeout(timeout)  # Restore timeout to blocking
-        except socket.error as e:
-            print('Socket error:', e)
-            exit(0)
-        except Exception as e:
-            print('An unexpected error occurred:', e)
-            exit(0)
+        while True: # did this loop so we can get rid of old replies that were timed out and arrived late
+            try:
+                received_data, addr = sock.recvfrom(MAX_PACKET_SIZE)
+                opcode_unpacked, id_bytes_unpacked = struct.unpack('>bi', received_data[:HEADER_LENGTH])
+                if id_bytes_unpacked != id:
+                    continue
+                data = received_data[HEADER_LENGTH:]
+                end_time = time.time()
+                rtt = end_time - start_time
+                total_bytes_len = len(received_data)
+                print("{} bytes from {}: seq={} rtt={}".format(total_bytes_len, ip, id_bytes_unpacked, rtt))
+                success_recv_count += 1
+                break
+            except socket.timeout:
+                print('requst timeout for icmp_seq {}'.format(id))
+                break
+            except socket.error as e:
+                print('Socket error:', e)
+                exit(0)
+            except Exception as e:
+                print('An unexpected error occurred:', e)
+                exit(0)
 
     packet_loss = 100 - success_recv_count/success_send_count * 100
     print("--- {} statistics ---".format(ip))
