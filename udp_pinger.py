@@ -40,11 +40,12 @@ def main():
     sock.settimeout(timeout)
     for id in range(count):
 
-        start_time = time.time()
+        
         data = FIXED_MESSAGE.zfill(size).encode()
         message_to_send = struct.pack(">bi", OPCODE, id) + data
         try:
             sock.sendto(message_to_send, agent_address)
+            start_time = time.time()
         except socket.error as e:
             print("Error sending message to socket")
             exit(0)
@@ -52,12 +53,15 @@ def main():
         
         try:
             while True:  # Did this so we can clear the buffer of late ping replies
+                if time.time() - start_time >= timeout:
+                    raise socket.timeout() # Because the timeout will reset every recv, if the time since we sent the packet passed timeout we timeout the current packet
                 received_data, addr = sock.recvfrom(MAX_PACKET_SIZE)
                 opcode_unpacked, id_bytes_unpacked = struct.unpack(
                     ">bi", received_data[:HEADER_LENGTH]
                 )
                 if id_bytes_unpacked != id:
                     continue
+                
                 break
             data = received_data[HEADER_LENGTH:]
             end_time = time.time()
